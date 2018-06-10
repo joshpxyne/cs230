@@ -3,11 +3,13 @@
 Alphanumeric-Augmented-CNN contains a model for recognizing rotated handwritten
 alphanumeric characters.
 
+Background-Scripts contains scripts used to generate background images for standardized objects.
+
 Darkflow-Geometric contains instructions for using the Darkflow YOLOv2 model on
 the dataset that can be generated with scripts inside.
 
 Darkflow-Human contains instructions for using the Darkflow YOLOv2 model on
-human detection.
+human detection and scripts for annotating data.
 
 EMNIST-Siamese-Model contains a model of a Siamese Convolutional Neural Network
 designed as a backup to the vanilla CNN to generate encodings for different
