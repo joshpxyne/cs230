@@ -1,3 +1,10 @@
+### Run on Colaboratory. ###
+
+from google.colab import files
+uploaded = files.upload()
+
+### Run on Colaboratory. ###
+
 from __future__ import absolute_import
 from __future__ import print_function
 import numpy as np
@@ -20,17 +27,12 @@ def eucl_dist_output_shape(shapes):
 
 
 def contrastive_loss(y_true, y_pred):
-    '''Contrastive loss from Hadsell-et-al.'06
-    http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
-    '''
     margin = 1
     return K.mean(y_true * K.square(y_pred) + (1 - y_true) * K.square(K.maximum(margin - y_pred, 0)))
 
 
 def create_pairs(x, digit_indices):
-    '''Positive and negative pair creation.
-    Alternates between positive and negative pairs.
-    '''
+    # Positive and negative pair creation, generates half of each
     pairs = []
     labels = []
     n = min([len(digit_indices[d]) for d in range(47)]) - 1
@@ -47,25 +49,23 @@ def create_pairs(x, digit_indices):
 
 
 def create_base_network():
-    '''Base network to be shared (eq. to feature extraction).
-    '''
     seq = Sequential()
-    seq.add(Conv2D(64, (3, 3),activation='relu',data_format='channels_last',input_shape=(input_dim,input_dim,1)))
+    seq.add(Conv2D(64, (5, 5),activation='relu',data_format='channels_last',input_shape=(input_dim,input_dim,1))) # convolutional layer
     seq.add(Conv2D(64, (3, 3),activation='relu',data_format='channels_last'))
-    seq.add(MaxPooling2D((2, 2)))
-    seq.add(Flatten())
-    seq.add(Dense(128, activation='relu'))
+    seq.add(MaxPooling2D((2, 2))) # typical max-pooling
+    seq.add(Flatten()) # flatten for fully-connected layer
+    seq.add(Dense(1024, activation='relu')) # fully-connected layer
+    seq.add(Dropout(0.5)) # dropout for avoiding overfitting
+    seq.add(Dense(1024, activation='relu')) # fully-connected layer
+    seq.add(Dropout(0.5))
+    seq.add(Dense(128, activation='relu')) # output fully-connected layer, encoding in 128-dimensional space
+    seq = Sequential()
+    return seq
     return seq
 
 
 def compute_accuracy(predictions, labels):
-    '''Compute classification accuracy with a fixed threshold on distances.
-    '''
     return labels[predictions.ravel() < 0.5].mean()
-
-
-# the data, shuffled and split between train and test sets
-
 
 raw_data = pd.read_csv("emnist-balanced-train.csv")
 
@@ -100,9 +100,8 @@ base_network = create_base_network()
 input_a = Input(shape=(input_dim,input_dim,1))
 input_b = Input(shape=(input_dim,input_dim,1))
 
-# because we re-use the same instance `base_network`,
-# the weights of the network
-# will be shared across the two branches
+# because we re-use the same instance 'base_network',
+# weights of the network will be shared across the two branches.
 processed_a = base_network(input_a)
 processed_b = base_network(input_b)
 
