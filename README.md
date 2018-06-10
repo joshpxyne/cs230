@@ -13,3 +13,5 @@ character classes.
 Segmentation contains a k-means clustering implementation for segmenting shape
 and character from an inputted image, as well as determining color of the
 object.
+
+Simple-NNs-and-older-versions are the models we tried before arriving at the ones above.
