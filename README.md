@@ -20,3 +20,6 @@ and character from an inputted image, as well as determining color of the
 object.
 
 SURF contains a preliminary SURF approach for localizing standardized objects.
+
+Simple-NNs-and-older-versions are the models we tried before arriving at the ones above.
+

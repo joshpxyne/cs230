@@ -14,24 +14,25 @@ import random
 import numpy as np
 import imutils
 
-raw_data = pd.read_csv("data/emnist-balanced-train.csv")
+raw_data = np.load("shapes.npy")
+shapes = ["Circle","Diamond","Plus","QuarterCircle","Rectangle","SemiCircle","Star","Trapezoid","Triangle"]
 
 train, validate = train_test_split(raw_data, test_size=0.1)
 
-x_train = train.values[:,1:]
-y_train = train.values[:,0]
+x_train = train[:,1:]
+y_train = train[:,0]
 
-x_validate = validate.values[:,1:]
-y_validate = validate.values[:,0]
+
+x_validate = validate[:,1:]
+y_validate = validate[:,0]
 
 batch_size = 512
-num_classes = 47
+num_classes = 9
 epochs = 1
 
-charInd = random.randint(0,10000) # select random index in dataset for testing
-emnist = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt"
+charInd = random.randint(0,3552) # select random index in dataset for testing
 
-img_rows, img_cols = 28, 28
+img_rows, img_cols = 50, 50
 
 if K.image_data_format() == 'channels_first':
     x_train = x_train.reshape(x_train.shape[0], 1, img_rows, img_cols)
@@ -44,9 +45,8 @@ else:
 
 x_train = x_train.astype('float32')
 x_validate = x_validate.astype('float32')
-x_train /= 255
+x_train /= 255 # normalize data
 x_validate /= 255
-print('x_train shape:', x_train.shape)
 print(x_train.shape[0], 'train samples')
 print(x_validate.shape[0], 'validation samples')
 
@@ -78,11 +78,18 @@ model = Sequential()
 model.add(Conv2D(32, kernel_size=(5, 5),
                  activation='relu',
                  input_shape=input_shape)) # Convolutional layer - 32 filters, 5x5 kernel size
-model.add(Conv2D(32, kernel_size=(3, 3), # Convolutional layer - 32 filters, 3x3 kernel size
-                 activation='relu'))
-model.add(MaxPooling2D(pool_size=(2, 2))) # max pooling layer - 2x2 pool window size
+# model.add(Conv2D(32, kernel_size=(3, 3), # Convolutional layer - 32 filters, 3x3 kernel size
+#                  activation='relu'))
+# model.add(MaxPooling2D(pool_size=(2, 2))) # max pooling layer - 2x2 pool window size
+# model.add(Dropout(0.25)) # dropout layer - sets 1/4 of the neurons to zero
+          
+# model.add(Conv2D(64, (3, 3), activation='relu'))
+# model.add(Conv2D(64, (3, 3), activation='relu'))
+# model.add(MaxPooling2D(pool_size=(2, 2)))
+# model.add(Dropout(0.25))
+
 model.add(Flatten())
-model.add(Dense(1024, activation='relu'))
+model.add(Dense(1024, activation='relu')) # our usual two FC layers
 model.add(Dropout(0.5))
 model.add(Dense(1024, activation='relu'))
 model.add(Dropout(0.5))
@@ -96,10 +103,9 @@ model.compile(loss=keras.losses.categorical_crossentropy,
 reduce_lr = ReduceLROnPlateau(monitor = 'val_loss', factor = 0.5,
                               patience = 2, min_lr = 0.0001)
 
-# transfer learning
-# model.load_weights('conv-model.h5')
+# transfer learning, comment out if no model exists with this name in this directory
+model.load_weights('shape-conv-model.h5')
 
-### comment back in to train ###
 model.fit_generator(datagen.flow(x_train, 
                                   y_train, 
                                   batch_size = batch_size), 
@@ -115,49 +121,51 @@ print('Validation accuracy:', score[1])
 # serialize model to JSON
 model_json = model.to_json()
 
-with open("conv-model.json", "w") as json_file:
+with open("shape-conv-model.json", "w") as json_file:
     json_file.write(model_json)
 # serialize weights to HDF5
-model.save_weights("conv-model.h5")
+model.save_weights("shape-conv-model.h5")
 print("Saved model to disk")
 
 randChar = np.array([x_validate[charInd,:]])
 
-### convert to dataset format ###
+### convert to image format ###
+ch = np.zeros((img_rows,img_cols))
+for i in range(img_rows):
+  for j in range(img_cols):
+    ch[i][j] = randChar[0][i][j][0]
+oldCh = ch
+randDeg = random.randint(-45,45)
+ch = imutils.rotate(ch,randDeg)
+### convert back to model format
+predChar = np.zeros((1,img_rows,img_cols,1))
+for i in range(img_rows):
+  for j in range(img_cols):
+    predChar[0][i][j][0] = ch[i][j]
 
-newChar = cv2.imread("test3.png", 0)
-newChar = np.array(newChar)/255.
-newChar.reshape(28,28)
-nChar = np.zeros((1,28,28,1))
-for i in range(28):
-  for j in range(28):
-    nChar[0][i][j][0] = newChar.T[i][j]
-
-
-prediction2 = model.predict(nChar)
-print(prediction2)
-
+prediction = model.predict(predChar)
+print(prediction)
 pred = secondPred = predIndex = secondPredIndex = thirdPred = thirdPredIndex = 0
 
-for i in range(47):
-  if prediction2[0][i] > pred:
-    pred = prediction2[0][i]
+for i in range(num_classes):
+  if prediction[0][i] > pred:
+    pred = prediction[0][i]
     predIndex = i
-for i in range(47):
-  if prediction2[0][i] > secondPred and i != predIndex:
-    secondPred = prediction2[0][i]
+for i in range(num_classes):
+  if prediction[0][i] > secondPred and i != predIndex:
+    secondPred = prediction[0][i]
     secondPredIndex = i
-for i in range(47):
-  if prediction2[0][i] > thirdPred and i != predIndex and i != secondPredIndex:
-    thirdPred = prediction2[0][i]
+for i in range(num_classes):
+  if prediction[0][i] > thirdPred and i != predIndex and i != secondPredIndex:
+    thirdPred = prediction[0][i]
     thirdPredIndex = i
 
 
-print("Random character: "+str(emnist[alphanum]))
-print("1st guess: " + emnist[predIndex]+", probability: " + str(100*pred)+"%")
-print("2nd guess: " + emnist[secondPredIndex]+", probability: " + str(100*secondPred)+"%")
-print("3rd guess: " + emnist[thirdPredIndex]+", probability: " + str(100*thirdPred)+"%")
+print("Random character: "+str(shapes[alphanum]))
+print("1st guess: " + shapes[predIndex]+", probability: " + str(100*pred)+"%")
+print("2nd guess: " + shapes[secondPredIndex]+", probability: " + str(100*secondPred)+"%")
+print("3rd guess: " + shapes[thirdPredIndex]+", probability: " + str(100*thirdPred)+"%")
 
-np.reshape(nChar, (28,28))
-cv2.imshow("random character",np.array(newChar))
+np.reshape(randChar, (img_rows,img_cols))
+cv2.imshow("random character",np.array(ch))
 cv2.waitKey(0)
