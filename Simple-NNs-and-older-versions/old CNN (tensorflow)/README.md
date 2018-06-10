@@ -70,6 +70,4 @@ Result for output key probabilities:
 
 After 12 epochs our augmented 35 class dataset (2000 instances of each class), evaluation accuracy was around ~96%. Predictions were generally good, but some weren't. Likely needs a better dataset. 
 
-(From Josh in the future: it definitely needed a better dataset! You overfit your training set as well.)
-
-Josh Payne
+(From me in the future: it definitely needed a better dataset! You overfit your training set as well.)
